@@ -31,44 +31,22 @@ def sha256_hash_str(to_hash: str) -> str:
     return sha256(to_hash.encode("utf-8")).hexdigest()
 
 
-def find_candidates(start: int, end: int, target_hashes: set) -> str | None :
+def find_candidates(start: int, end: int, target_hashes: set) -> list | None :
     found = []
     for i in range(start, end):
         candidate = str(i).zfill(8)
         if sha256_hash_str(candidate) in target_hashes:
             print(candidate)
             found.append(candidate)
-    return found if found else None
+    if found:
+        return found
 
-
-def brute_force_password2() -> None:
-    target_hashes = set(PASSWORDS_TO_BRUTE_FORCE)
-    processes = []
-
-    total = 100_000_000
-    total_cpu = os.cpu_count() - 1
-    chunk_size = total // total_cpu
-
-    for i in range(0, total, chunk_size):
-        start = i
-        end = i + chunk_size
-        process = multiprocessing.Process(
-            target=find_candidates,
-            args=(start, end, target_hashes)
-        )
-        process.start()
-        processes.append(process)
-        if len(processes) == 10:
-            break
-
-    for process in processes:
-        process.join()
 
 def brute_force_password() -> None:
     target_hashes = set(PASSWORDS_TO_BRUTE_FORCE)
 
     total = 100_000_000
-    total_cpu = os.cpu_count() - 1
+    total_cpu = max(1, (os.cpu_count() or 1) - 1)
     chunk_size = total // total_cpu
 
     chunks = [
@@ -80,7 +58,8 @@ def brute_force_password() -> None:
         results = executor.starmap(find_candidates, chunks)
 
     print([r for r in results if r is not None])
-
+    print(results)
+    print(len(results) == 1)
 
 if __name__ == "__main__":
     start_time = time.perf_counter()
